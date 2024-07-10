@@ -76,3 +76,50 @@ In a disk we have 2 constant values,
 `sector = (LBA % sectors per track) + 1`
 `heads = (LBA / sectors per track) % heads`
 `cylinder = (LBA / sectors per track) / heads`
+
+## File Systems
+
+A file system is an organized way to store data on a disk. Following are some common file systems.
+
+1. FAT - Simplest file system, very few features. Supported by Windows 9x and Windows 3.1
+2. ext - Supported on Linux
+3. APFS - Supported on newer Macs
+3. HFS+ - Supported on older Macs
+4. NTFS - Supported on newer Windows machines and supports many newer features
+
+### FAT File System
+
+Stands for File Attribute Table System. A FAT disk is broken into 4 region.
+
+1. Reserved Region - Contains the size of a sector, size and locations of each of the regions and some metadata like volume ID and serial number. FAT32 has an additional sector called File System Information Sector. This is not present in FAT12 and FAT16.
+2. File Allocation Table Region - Contains two copies of the file allocation table that gives us the location of the next block of data for a file.
+3. Root Directory Region - Table of contents for a disk, contains entry for each file and folder present in the root directory of the disk. Contains information about file name, size, attributes and meta data of the file.
+4. Data Region - Contains the actual contents of the file.
+
+#### Reading a file from the FAT file system
+
+1. First determine where the Root Directory region is. We know that the root directory is the third region after Reserved and FAT Regions.
+    * Read the number of reserved sectors present in the reserved region. In our boot img this is 1.
+    * To get the size of the FAT Region multiply the number of FAT counts (2) with the size of each FAT (9 sectors) = 18 sectors.
+    * So the root directory starts at the 19th sector.
+    * We now need to calculate the size of the root directory to determine where it ends.
+    * We see the directory entry count (224) and the size of each directory (32 bytes) which gives us a total size of 7168 bytes.
+    * Therefore we can now get the total number of sectors by dividing by 512 the size of each sector in FAT12 and end up with a total of 14 sectors.
+    * To ensure ceil operation during division, we can do (num + divisor - 1)/divisor.
+2. Once we reach the root directory, we search for the file we need.
+    * File names can only be 11 characters long, which was extended with the help of the attribute field and other fields to store the parts of long file names.
+    * Compare the file name field to the file name of our desired file. Once matched read the first cluster number.
+    * FAT 32 uses cluster high and cluster low fields, FAT 12 only needs cluster low field.
+    * In FAT a block of data is called a cluster. 
+3. Since we know where the first cluster of a file is located, we can now start reading the file into memory.
+    * The cluster number gives us the location to start reading from in the data region and the first data cluster starts from 2.
+    * `LBA = data_region_begin  + (cluster - 2) * sectors_per_cluster`
+    * `LBA = 1+18+14 + (3 - 2) * 2`
+    * Once we know the first cluster, we look at the file allocation table to determine the next clusters for a file.
+    * For FAT12 each entry in the FAT is 12 bits wide.
+    * In our example, the first cluster is 3, so start reading from the 4th entry. This gives us the location of the next cluster.
+    * Keep reading each subsequent cluster until you reach the end marker (value above 0xFF8). This is the end of a file.
+4. If the file we want is in a folder,
+    * Split the path into its component folders and end file.
+    * Read each folder and file similar to before.
+    * Parse the data of a folder similar to that of the root direcotry.
