@@ -81,6 +81,7 @@ main:
         mov si, msg_hello
         call puts
 
+        cli
         hlt
 
 boot_error:
@@ -163,11 +164,11 @@ disk_read:
 .done:
         popa
 
-        push di         ; Restore Callee Saved Registers
-        push dx
-        push cx
-        push bx
-        push ax
+        pop di         ; Restore Callee Saved Registers
+        pop dx
+        pop cx
+        pop bx
+        pop ax
         ret
 
 
