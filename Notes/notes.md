@@ -30,7 +30,7 @@ Following are the different segment registers available
 
 All fields are optional.
 
-1. segment - The segment whose memory we are trying to access (by default it is the data segment)
+1. segment - The segment whose memory we are trying to access (by default it is the data segment, and if base register is BP, stack segment is used)
 2. base - The base address from where we calculate our displacement. For 16 bit mode this base address has to be stored in BP/BX
 3. index - The index we try to add to the base. For 16 bit mode this base address has to be stored in SI/DI
 4. scale - Only for 32 and 64 bit processors, 1, 2, 4 or 8
@@ -41,3 +41,38 @@ All fields are optional.
 `mov bx, array`
 `mov si, 2 * 2 ; Each element is 2 bytes (word) so second element is 2 * 2 bytes in`
 `mov ax, [bx + si] ; Copy 2nd element to ax. Base + Index style of addressing`
+
+## Components of an Operating System
+
+The operating system generally has 2 components, the bootloader and the kernel.
+
+### Bootloader
+
+The bootloader is a tiny segment of code (usually 512 bytes) that loads the basic components of the OS into memory.
+It puts the computer in an expected state and collects some information about the system. 
+The bootloader switches from 16 bit mode into 32 bit protected mode and hands it off to the kernel.
+32 bit protected mode has some limitations as to the kind of instructions we can execute, so the bootloader has to track all these things before we jump into the kernel.
+
+## Disk Layout
+
+To access the data on a disk we need to come up with an accessing scheme. Each side of the platter is called the head of the disk. Each ring on the head is called the cylinder. And the data is located in the sectors in these cylinders.
+
+### CHS Scheme
+
+In CHS scheme we access the data in the disk by specifying the cylinder, head and sector number. Cylinders and heads are 0 indexed and sectors are 1 indexed.
+BIOS only supports CHS scheme.
+
+### LBA Scheme
+
+This stands for logical block addressing scheme, tells us which block of the disk the memory we want to access is present in. We must manually convert from LBA to CHS.
+
+### Conversion from LBA to CHS
+
+In a disk we have 2 constant values,
+
+1. The number of sectors per track
+2. The number of heads per cylinder
+
+`sector = (LBA % sectors per track) + 1`
+`heads = (LBA / sectors per track) % heads`
+`cylinder = (LBA / sectors per track) / heads`
