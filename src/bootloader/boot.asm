@@ -127,7 +127,7 @@ root_dir_after:
         jl .search_kernel
 
         ; Kernel not found
-        jmp msg_kernel_not_found
+        jmp kernel_not_found_error
 
 .found_kernel:
         ; DI should point to the address of the entry
@@ -199,6 +199,7 @@ root_dir_after:
         mov es, ax
 
         jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
+
 
 
 
@@ -343,7 +344,7 @@ disk_reset:
 msg_boot_loading:   db 'Loading...', ENDL, 0
 msg_boot_fail:      db 'Fatal: Boot Failed!', ENDL, 0
 msg_kernel_not_found:      db 'Fatal: Kernel Not Found!', ENDL, 0
-file_kernel_bin:    db 'KERNEL  TXT'
+file_kernel_bin:    db 'KERNEL  BIN'
 
 kernel_cluster:     dw 0
 
