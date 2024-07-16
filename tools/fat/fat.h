@@ -37,7 +37,7 @@ typedef struct {
 } __attribute__((packed)) BootSector;
 
 typedef struct {
-    uint8_t Name[8];
+    uint8_t Name[11];
     uint8_t Attribute;
     uint8_t _Reserved;
     uint8_t CreatedTimeTenths;

@@ -81,7 +81,6 @@ bool readRootDirectory(FILE *disk)
 DirectoryEntry* findFile(const char *name)
 {
     for (uint32_t i = 0; i < g_BootSector.DirEntriesCount; ++i) {
-        printf("%s is one file\n", g_RootDirectory[i].Name);
         if (memcmp(name, g_RootDirectory[i].Name, 11) == 0)
             return &g_RootDirectory[i];
     }
