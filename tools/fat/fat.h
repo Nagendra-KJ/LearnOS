@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define true 1
 #define false 0
@@ -55,3 +56,4 @@ bool readBootSector(FILE *disk);
 bool readFat(FILE *disk);
 bool readRootDirectory(FILE *disk);
 DirectoryEntry* findFile(const char *name);
+bool readFile(DirectoryEntry *fileEntry, FILE *disk, uint8_t *outputBuffer);
