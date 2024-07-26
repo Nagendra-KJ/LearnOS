@@ -120,6 +120,6 @@ bool readFile(DirectoryEntry *fileEntry, FILE *disk, uint8_t *outputBuffer)
             currentCluster = (*(uint16_t *)g_Fat + fatIndex) & 0xFFF;
         else                        // We need to read the lower 12 bits
             currentCluster = (*(uint16_t *)g_Fat + fatIndex) >> 4;
-   } while(ok && currentCluster < 0x0FF8);
+   } while(ok && currentCluster < 0x0FF0 && currentCluster != 0);
    return ok;
 }
