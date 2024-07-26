@@ -18,8 +18,9 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
 	dd if=/dev/zero of=$(BUILD_DIR)/main_floppy.img	 bs=512 count=2880 # Copy 0s to floppy.img with sector size of 512 and number of sectors equal to 2880
 	mkfs.fat -F 12 -n "LOSBOS" $(BUILD_DIR)/main_floppy.img # Format this image as a FAT12 file system
 	mdir -i $(BUILD_DIR)/main_floppy.img ::
-	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc # Copy the bootloader binary to the first sector.
+	dd if=$(BUILD_DIR)/stage1.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc # Copy the bootloader binary to the first sector.
 	# The above step erases the FAT12 metadata unless this data is present in the bootloader.
+	mcopy -v -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/stage2.bin "::/stage2.bin" # Copy the kernel.bin file to the FAT12 file system on the floppy disk image
 	mcopy -v -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::/kernel.bin" # Copy the kernel.bin file to the FAT12 file system on the floppy disk image
 	mcopy -v -i $(BUILD_DIR)/main_floppy.img $(TOOLS_DIR)/fat/test.txt "::/test.txt"
 	mdir -i $(BUILD_DIR)/main_floppy.img ::
@@ -28,10 +29,18 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
 #
 # Bootloader Recipe
 #
-bootloader: $(BUILD_DIR)/bootloader.bin
+bootloader: stage1 stage2
 
-$(BUILD_DIR)/bootloader.bin: always
-	$(ASM) $(SRC_DIR)/bootloader/boot.asm -f bin -o $(BUILD_DIR)/bootloader.bin
+stage1:	$(BUILD_DIR)/stage1.bin
+
+$(BUILD_DIR)/stage1.bin: always
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR))
+
+stage2:	$(BUILD_DIR)/stage2.bin
+
+$(BUILD_DIR)/stage2.bin: always
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR))
+
 
 #
 # Kernel Recipe
@@ -40,7 +49,7 @@ $(BUILD_DIR)/bootloader.bin: always
 kernel: $(BUILD_DIR)/kernel.bin
 
 $(BUILD_DIR)/kernel.bin: always
-	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
+	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR))
 
 #
 # Always
@@ -60,4 +69,7 @@ $(BUILD_DIR)/tools/fat: always $(TOOLS_DIR)/fat/fat.c
 	$(BUILD_DIR)/tools/fat $(BUILD_DIR)/main_floppy.img "TEST    TXT"
 
 clean:
+	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR)) clean
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
 	rm -rf $(BUILD_DIR)/*
