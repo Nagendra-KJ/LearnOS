@@ -106,34 +106,34 @@ root_dir_after:
         mov bx, buffer                  ; es:bx is our buffer
         call disk_read
 
-        ; Search for the kernel.bin file in the directory entries
+        ; Search for the stage2.bin file in the directory entries
 
         xor bx, bx                      ; Number of directory entries checked is stored in bx
         mov di, buffer
         
-.search_kernel:
-        mov si, file_kernel_bin 
+.search_stage2:
+        mov si, file_stage2_bin
         mov cx, 11
         push di
         repe cmpsb
         pop di
-        je .found_kernel
+        je .found_stage2
        
 
-        ; Current directory was not kernel entry, move on to next one.
+        ; Current directory was not stage2 entry, move on to next one.
         add di, 32
         inc bx
         cmp bx, [bpb_dir_entries_count]
-        jl .search_kernel
+        jl .search_stage2
 
         ; Kernel not found
-        jmp kernel_not_found_error
+        jmp stage2_not_found_error
 
-.found_kernel:
+.found_stage2:
         ; DI should point to the address of the entry
         ; The lower bits of the cluster are in DI + 26
         mov ax, [di + 26]
-        mov [kernel_cluster], ax
+        mov [stage2_cluster], ax
         
 
        ; Read the FAT
@@ -144,18 +144,18 @@ root_dir_after:
         mov dl, [ebr_drive_number]          ; From the ebr drive
         call disk_read                      ; Go ahead and read it
 
-        ; Read the kernel and process the FAT chain
-        ; Save the kernel in the area 0x7E00 to 0x7FFF (400 KB worth of space)
+        ; Read the stage2 and process the FAT chain
+        ; Save the stage2 in the area 0x7E00 to 0x7FFF (400 KB worth of space)
 
-        mov bx, KERNEL_LOAD_SEGMENT
+        mov bx, STAGE2_LOAD_SEGMENT
         mov es, bx
-        mov bx, KERNEL_LOAD_OFFSET
+        mov bx, STAGE2_LOAD_OFFSET
 
 
-.load_kernel_loop:
+.load_stage2_loop:
         ; Read next cluster
-        mov ax, [kernel_cluster]
-        add ax, 31                          ; First cluster is [kernel_cluster - 2] * sectors_per_cluster + start_sector
+        mov ax, [stage2_cluster]
+        add ax, 31                          ; First cluster is [stag2_cluster - 2] * sectors_per_cluster + start_sector
                                             ; Start sector = reserved + FATs + Root Directory Size = 1 + 18 + 14 = 33
                                             ; First cluster is -2 * 1 + 33 = 31 which we have hardcoded here
         mov cl, 1
@@ -166,7 +166,7 @@ root_dir_after:
         add bx, [bpb_bytes_per_sector]      ; Possible overflow here, may need to fix in future
 
         ; Compute the location of the next cluster
-        mov ax, [kernel_cluster]
+        mov ax, [stage2_cluster]
         mov cx, 3
         mul cx
         mov cx, 2
@@ -189,21 +189,21 @@ root_dir_after:
         cmp ax, 0x0ff0                      ; Check if end of cluster
         jae .read_finish
 
-        mov [kernel_cluster], ax
-        jmp .load_kernel_loop
+        mov [stage2_cluster], ax
+        jmp .load_stage2_loop
 
 .read_finish:
         mov dl, [ebr_drive_number]
-        mov ax, KERNEL_LOAD_SEGMENT
+        mov ax, STAGE2_LOAD_SEGMENT
         mov ds, ax
         mov es, ax
 
-        jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
+        jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
 
 
 
 
-        ; We should be in kernel land at this point
+        ; We should be in stage2 land at this point
         jmp wait_key_and_reboot
         
         
@@ -219,8 +219,8 @@ boot_error:
         call puts
         jmp wait_key_and_reboot
 
-kernel_not_found_error:
-        mov si, msg_kernel_not_found
+stage2_not_found_error:
+        mov si, msg_stage2_not_found
         call puts
         jmp wait_key_and_reboot
 
@@ -343,13 +343,13 @@ disk_reset:
 
 msg_boot_loading:   db 'Loading...', ENDL, 0
 msg_boot_fail:      db 'Fatal: Boot Failed!', ENDL, 0
-msg_kernel_not_found:      db 'Fatal: Stage 2 Not Found!', ENDL, 0
-file_kernel_bin:    db 'STAGE2  BIN'
+msg_stage2_not_found:      db 'Fatal: Stage 2 Not Found!', ENDL, 0
+file_stage2_bin:    db 'STAGE2  BIN'
 
-kernel_cluster:     dw 0
+stage2_cluster:     dw 0
 
-KERNEL_LOAD_SEGMENT     equ 0x2000
-KERNEL_LOAD_OFFSET      equ 0
+STAGE2_LOAD_SEGMENT     equ 0x2000
+STAGE2_LOAD_OFFSET      equ 0
 
 times 510-($-$$) db 0   ; Times is a directive that repeats another directive (in this case db) n number of times.
                         ; $ gives the memory offset of the current line. $$ gives the memory offset of the current sector (in our case the beginning of the program).
