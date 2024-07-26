@@ -186,7 +186,7 @@ root_dir_after:
 
 
 .next_cluster_after:
-        cmp ax, 0x0ff8                      ; Check if end of cluster
+        cmp ax, 0x0ff0                      ; Check if end of cluster
         jae .read_finish
 
         mov [kernel_cluster], ax
