@@ -1,42 +1,24 @@
-org 0x0         ; This is a directive that tells the assembler that all addresses are to be calculated relative to this starting address.
-                ; Directives are only hints to the assembler not an instruction that will perform a computation.
-bits 16         ; 8086 machines always start in 16 bit mode to ensure backward compatibility. So, we need to set a directive saying emit 16 bit code only.
+bits 16
 
-%define ENDL 0x0d, 0x0a ; The endline macro is just line feed + carriage return characters.
+section _ENTRY class=CODE ; Defining the entry point for our linker and telling it that this belongs in the code section
 
-start:
-    jmp main
+extern _cstart_ ; This will be the extern symbol where C will enter into.
 
-                ; Print a string to the screen.
-                ; Params DS:SI points to the string.
-puts:
-        push si ; Saving callee saved registers
-        push ax
-	push bx
-.loop:
-        lodsb       ; Load the value in DS:SI into AL.
-        or al, al   ; Check if al is 0 (Modify only ZF not value of register itself).
-        jz .done    ; If byte is null exit loop.
-        mov ah, 0xe ; Set AL to ASCII value and AH to interrupt id.
-        mov bh, 0x0 ; Set page to 0.
-        int 0x10    ; Call BIOS interrupt to print character to the screen.
+global entry
 
-        jmp .loop
+entry:
+    cli
+    mov ax, ds  ; Since we are using a small memory model the stack segment and data segment are in the same space.
+    mov ss, ax  ; Since stage1 has already set up the data segment for us, we copy that into the stack segment.
+    mov sp, 0   ; Resetting the base and stack pointer. This will cause overwriting if our file is larger than 60KB as sp and bp will wrap around
+    mov bp, sp
+    sti         ; Re-enable interrupts once stack is set up.
 
-.done:
-	    pop bx	; Restoring callee saved registers
-        pop ax
-        pop si
-        ret
+    ; Stage 1 has set the boot drive which was loaded into dl, we will send this to the cstart function
+    xor dh, dh  ; Resetting high bytes since we don't need it
+    push dx     ; Saving dx onto the stack
+    call _cstart_   ; Should never return from this
 
-main:
-        ; print hello world to the screen
-        mov si, msg_hello
-        call puts
+    cli
+    hlt
 
-        cli
-        hlt
-.halt:          ; A halt section to trap the execution of our program if it reaches this point by mistake.
-        jmp .halt
-
-msg_hello: db 'Hello World, from Kernel Land!', ENDL, 0
