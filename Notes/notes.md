@@ -123,3 +123,52 @@ Stands for File Attribute Table System. A FAT disk is broken into 4 region.
     * Split the path into its component folders and end file.
     * Read each folder and file similar to before.
     * Parse the data of a folder similar to that of the root direcotry.
+
+### [CDECL Calling Convention](https://learn.microsoft.com/en-us/cpp/cpp/cdecl?view=msvc-170)
+
+In order to move from Assembly to a high level programming language (C) we need to setup our compilation toolchain. Since we are still in 16 bit real mode for our bootloader, we use the open watcom 16 bit compiler. We also do not have access to the standard library, so we must define our own library functions. For this, we need to setup basic interrupt calls from assembly as we cannot make interrupt calls from C. To pass the parameters from the C functions into assembly land, we need to follow a proper calling convention, for 16 bit systems we use the CDECL calling convention. The rules for this calling convention are given below.
+
+1. Default calling convention for C and C++ programs.
+2. Caller function is responsible for cleaning up the stack.
+3. This allows for varargs during compilation.
+4. Larger sized executables since each function needs to include cleanup code.
+5. Arguments are passed from right to left.
+6. Calling function pops the arguments from the stack.
+7. _ is prefixed to names, except when _cdecl modifier is specified during linking for C programs.
+
+### Pointer Comparison
+
+This was a solution that was deviced when memory was a precious resource way back when. Every address in a program in x86 is 20 bits wide, however, the registers in x86 are only 16 bits wide.
+
+So, the real address is calculated by doing `segment_register << 4 + offset_register`. This calculation means a given address is can be addressed using different ways (4096). This makes it difficult to compare two pointers as they may be pointing to the same real address with different register values. This leads to the following different types of pointers.
+
+#### Near Pointers
+
+Near pointers are 16 bit offsets within a segment (CS for code segment and DS for data segment). This allows for a range of 64KB worth of memory. They are really fast but limited in size.
+
+`final 16 bit pointer address = 16 bit offset coming from offset register`
+
+#### Far Pointers
+
+Far pointers are 32 bit pointers, containing a segment and an offset. The segment is specified using the extra segment and the offset is specified using another register. This method of addressing allows a range of 1MB of memory. Far pointers allow for multiple segments to be accessed simply by changing the ES register value. Segments roll over post 64K and do not extend.
+
+`final 32 bit pointer address = first 16 bits from ES register + last 16 bits coming from offset register`
+
+#### Huge Pointers
+
+Huge pointers are 32 bit pointers and are similar to far pointers, except that each time the address is normalized (re-organized) such that the segment register takes the maximum possible value to correctly calculate that address. This means when using huge pointers, 2 pointers which point to the same location, always have the same segment and offset registers.
+
+`final 32 bit pointer address = first 16 bits from ES register (with the additional constraint that this the maxed out) + last 16 bits coming from offset register`
+
+
+### Memory models
+
+The above pointer types allows for the following memory models.
+
+| MODEL | DATA | CODE | DEFINITION |
+| Tiny  | near | near | CS = DS = SS |
+| Small | near | near | DS = SS |
+| Medium | near | far | DS = SS and multiple CS |
+| Compact | far | near | single CS, multiple DS |
+| Large | far | far | multiple CS, multiple DS |
+| Huge | huge | far | multiple CS, and multiple DS, single array may be over 64KB |
