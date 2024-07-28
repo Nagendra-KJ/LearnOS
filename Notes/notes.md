@@ -135,6 +135,9 @@ In order to move from Assembly to a high level programming language (C) we need 
 5. Arguments are passed from right to left.
 6. Calling function pops the arguments from the stack.
 7. _ is prefixed to names, except when _cdecl modifier is specified during linking for C programs.
+8. AX, CX, and DX are caller saved and rest are callee saved registers.
+9. The value is returned through AX, either an integer or a pointer.
+10. The value can also be returned through ST0 if it is a floating point register.
 
 ### Pointer Comparison
 
